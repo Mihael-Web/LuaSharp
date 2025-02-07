@@ -1,4 +1,5 @@
 // Imports //
+using LuaSharp.src;
 using LuaSharp.src.Utilities;
 
 // Namespace //
@@ -71,7 +72,9 @@ namespace LuaSharp.src.SessionManager
             }
 
             Console.WriteLine("[LuaShrp] Starting build session.");
-            Console.ReadKey();
+
+            // Start compile //
+            CompilerLS.AttemptBuild(sourceDirectory, outputDirectory);
         }
 
         public static string? GetCachedProjectSettingsFile()

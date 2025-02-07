@@ -6,3 +6,4 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible", Justification = "<Pending>", Scope = "member", Target = "~F:LuaSharp.src.SessionManager.SessionManager._cachedProjectSettingsFile")]
+[assembly: SuppressMessage("Style", "IDE0090:Use 'new(...)'", Justification = "<Pending>", Scope = "member", Target = "~M:LuaSharp.src.MimicLexer.TurnToLSTokenTree(Microsoft.CodeAnalysis.CSharp.Syntax.CompilationUnitSyntax)")]
