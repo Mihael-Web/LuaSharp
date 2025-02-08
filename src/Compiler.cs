@@ -191,8 +191,12 @@ namespace LuaSharp.src
             var methodName = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedMethod";
 
             luauCode.AppendLine($"{indent}{className}.{methodName} = function(self)");
-            luauCode.AppendLine($"{indent}    -- Method body here");
             luauCode.AppendLine($"{indent}end\n");
+
+            if (methodName != null && methodName.Equals("main", StringComparison.CurrentCultureIgnoreCase))
+            {
+                luauCode.AppendLine($"{indent}task.spawn({className}.{methodName})");
+            }
         }
 
         private static void ProcessChildren(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)

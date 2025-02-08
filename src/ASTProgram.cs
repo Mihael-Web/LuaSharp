@@ -168,18 +168,19 @@ namespace LuaSharp.src
         private static Dictionary<string, object> ProcessMethodNode(MethodDeclarationSyntax methodNode)
         {
             var methodRepresentation = new Dictionary<string, object>
-        {
+            {
             { "NodeType", "Method" },
             { "Name", methodNode.Identifier.Text },
             { "ReturnType", methodNode.ReturnType.ToString() },
             { "Parameters", methodNode.ParameterList.Parameters
                 .Select(p => new
                 {
-                    Name = p.Identifier.Text,
-                    Type = p.Type?.ToString()
+                Name = p.Identifier.Text,
+                Type = p.Type?.ToString()
                 }).ToList()
-            }
-        };
+            },
+            { "Body", methodNode.Body?.ToString() ?? string.Empty }
+            };
 
             return methodRepresentation;
         }
