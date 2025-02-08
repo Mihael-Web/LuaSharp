@@ -91,26 +91,37 @@ namespace LuaSharp.src
     public static class ASTParser
     {
         /// <summary>
-        /// Recursively processes the syntax tree and generates a simplified AST structure.
+        /// Recursively processes the syntax tree and generates a simplified AST structure with proper parenting and hierarchy.
         /// </summary>
         /// <param name="syntaxTreeRoot">The root node of the C# syntax tree.</param>
-        /// <returns>A list representing the simplified AST.</returns>
+        /// <returns>A list representing the simplified AST with proper parenting and hierarchy.</returns>
         public static List<Dictionary<string, object>> GetFullAST(SyntaxNode syntaxTreeRoot)
         {
             var ast = new List<Dictionary<string, object>>();
 
-            // Fetch namespaces using ASTFetcher //
+            // Fetch all namespaces
             var namespaces = ASTFetcher.GetNamespaceDeclarations(syntaxTreeRoot);
             foreach (var namespaceNode in namespaces)
             {
-                ast.Add(ProcessNamespaceNode(namespaceNode));
+                var namespaceRepresentation = ProcessNamespaceNode(namespaceNode);
+
+                // Fetch classes inside the namespace
+                var classesInNamespace = ASTFetcher.GetClassDeclarationsInsideNamespace(namespaceNode);
+                foreach (var classNode in classesInNamespace)
+                {
+                    var classRepresentation = ProcessClassNode(classNode);
+                    ((List<Dictionary<string, object>>)namespaceRepresentation["Classes"]).Add(classRepresentation);
+                }
+
+                ast.Add(namespaceRepresentation); // Add the namespace and its classes
             }
 
-            // Handle classes in the root (outside of namespaces) //
+            // Handle classes outside of namespaces (root level classes)
             var rootClasses = ASTFetcher.GetClassesInRoot(syntaxTreeRoot);
             foreach (var classNode in rootClasses)
             {
-                ast.Add(ProcessClassNode(classNode));
+                var classRepresentation = ProcessClassNode(classNode);
+                ast.Add(classRepresentation); // Add root classes
             }
 
             return ast;

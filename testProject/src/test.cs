@@ -1,4 +1,4 @@
-namespace test
+namespace test1
 {
     class TestScript
     {
@@ -14,10 +14,13 @@ namespace test
     }
 }
 
-class HelpMe
+namespace test2
 {
-    static int DoHelp(int a, int b)
+    class HelpMe
     {
-        return a * b;
+        static int DoHelp(int a, int b)
+        {
+            return a * b;
+        }
     }
 }

@@ -25,6 +25,7 @@ namespace LuaSharp.src
                 return;
             }
 
+
             string luaCode = CompilerLSConverter.ConvertCSharpToLuau(sourceCode);
             string outputFilePath = Path.Combine(outDir, Path.GetFileName(file));
 
@@ -34,7 +35,7 @@ namespace LuaSharp.src
                 Directory.CreateDirectory(outputDir);
             }
 
-            File.WriteAllText(outputFilePath, luaCode);
+            File.WriteAllText(outputFilePath + ".luau", luaCode);
         }
 
         /// <summary>
@@ -66,29 +67,20 @@ namespace LuaSharp.src
         }
     }
 
-    /// <summary>
-    /// A class for converting C# code to Luau (Roblox scripting language) using an Abstract Syntax Tree (AST).
-    /// </summary>
     public static class CompilerLSConverter
     {
         private static readonly Dictionary<string, Action<Dictionary<string, object>, StringBuilder, int>> NodeHandlers;
 
         static CompilerLSConverter()
         {
-            // Initialize node handlers
             NodeHandlers = new Dictionary<string, Action<Dictionary<string, object>, StringBuilder, int>>
-            {
-                { "NamespaceDeclarationSyntax", HandleNamespaceDeclaration },
-                { "ClassDeclarationSyntax", HandleClassDeclaration },
-                { "MethodDeclarationSyntax", HandleMethodDeclaration }
-            };
+        {
+            { "Namespace", HandleNamespaceDeclaration },
+            { "Class", HandleClassDeclaration },
+            { "Method", HandleMethodDeclaration }
+        };
         }
 
-        /// <summary>
-        /// Converts C# source code to Luau code.
-        /// </summary>
-        /// <param name="sourceCode">The C# source code.</param>
-        /// <returns>Luau code as a string.</returns>
         public static string ConvertCSharpToLuau(string sourceCode)
         {
             var syntaxTreeRoot = ASTFetcher.GetSyntaxTreeRoot(sourceCode);
@@ -103,83 +95,81 @@ namespace LuaSharp.src
             return luauCode.ToString();
         }
 
-        /// <summary>
-        /// Recursively processes an AST node and generates the corresponding Luau code.
-        /// </summary>
-        /// <param name="node">The AST node.</param>
-        /// <param name="luauCode">The StringBuilder to append the generated Luau code.</param>
-        /// <param name="indentLevel">The current indentation level.</param>
         private static void ProcessNode(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
             var indent = new string(' ', indentLevel * 2);
+            var nodeType = node.ContainsKey("NodeType") ? node["NodeType"]?.ToString() : "Unknown NodeType";
 
-            // Check if there's a handler for the node type and execute it
-            var nodeType = node["NodeType"]?.ToString();
-            if (nodeType != null && NodeHandlers.TryGetValue(nodeType, out Action<Dictionary<string, object>, StringBuilder, int>? value))
+            if (nodeType != null && NodeHandlers.TryGetValue(nodeType, out var handler))
             {
-                value(node, luauCode, indentLevel);
+                handler(node, luauCode, indentLevel);
             }
             else
             {
-                // If no specific handler, process the node recursively
                 ProcessGenericNode(node, luauCode, indentLevel);
             }
         }
 
-        /// <summary>
-        /// Generic handler to process any node not explicitly defined in NodeHandlers.
-        /// </summary>
-        /// <param name="node">The AST node.</param>
-        /// <param name="luauCode">The StringBuilder to append the generated Luau code.</param>
-        /// <param name="indentLevel">The current indentation level.</param>
         private static void ProcessGenericNode(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
             var indent = new string(' ', indentLevel * 2);
-            var nodeRepresentation = node["NodeType"].ToString();
-
-            // Just output the node type and its children (if any)
+            var nodeRepresentation = node.ContainsKey("NodeType") ? node["NodeType"].ToString() : "Unknown Node";
             luauCode.AppendLine($"{indent}-- {nodeRepresentation}");
 
             ProcessChildren(node, luauCode, indentLevel);
         }
 
-        /// <summary>
-        /// Processes an individual Namespace Declaration node.
-        /// </summary>
         private static void HandleNamespaceDeclaration(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
             var indent = new string(' ', indentLevel * 2);
-            var namespaceName = node.TryGetValue("Name", out object? value) ? value.ToString() : "";
-            luauCode.AppendLine($"{indent}-- Namespace: {namespaceName}");
+            var namespaceName = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedNamespace";
 
-            ProcessChildren(node, luauCode, indentLevel);
+            luauCode.AppendLine($"{indent}-- Namespace: {namespaceName}");
+            luauCode.AppendLine($"{indent}local {namespaceName} = {{}}");  // Create a table for the namespace
+
+            ProcessChildren(node, luauCode, indentLevel + 1); // Process nested classes or other elements
         }
 
-        /// <summary>
-        /// Processes an individual Class Declaration node.
-        /// </summary>
         private static void HandleClassDeclaration(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
             var indent = new string(' ', indentLevel * 2);
-            var className = node.TryGetValue("Name", out object? value) ? value.ToString() : "";
+            var className = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedClass";
+            var classNamespace = node.TryGetValue("Namespace", out var namespaceValue) ? namespaceValue?.ToString() : null;
 
-            luauCode.AppendLine($"{indent}-- Class: {className}");
-            luauCode.AppendLine($"{indent}local {className} = {{}}");
+            if (classNamespace != null)
+            {
+                // Add class to its parent namespace
+                luauCode.AppendLine($"{indent}-- Class: {className}");
+                luauCode.AppendLine($"{indent}{classNamespace}.{className} = {{}}");
+            }
+            else
+            {
+                // Root class
+                luauCode.AppendLine($"{indent}-- Class: {className}");
+                luauCode.AppendLine($"{indent}local {className} = {{}}");  // Root-level class as a table
+            }
 
-            ProcessChildren(node, luauCode, indentLevel + 1);
+            ProcessChildren(node, luauCode, indentLevel + 1); // Process methods and properties inside the class
         }
 
-        /// <summary>
-        /// Processes an individual Method Declaration node.
-        /// </summary>
         private static void HandleMethodDeclaration(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
             var indent = new string(' ', indentLevel * 2);
-            var methodName = node.TryGetValue("Name", out object? value) ? value.ToString() : "";
-            var returnType = node.TryGetValue("ReturnType", out object? returnValue) ? returnValue.ToString() : "void";
-            var parameters = node.TryGetValue("Parameters", out object? paramValue) ? FormatParameters(paramValue) : "";
+            var methodName = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedMethod";
+            var returnType = node.TryGetValue("ReturnType", out var returnValue) ? returnValue?.ToString() : "void";
+            var parameters = node.TryGetValue("Parameters", out var paramValue) ? FormatParameters(paramValue) : "";
 
+            // Method declaration in Luau
             luauCode.AppendLine($"{indent}function {methodName}({parameters})");
+
+            // Process method body if available
+            var methodBody = node.TryGetValue("Body", out var bodyValue) ? bodyValue?.ToString() : "";
+            if (!string.IsNullOrEmpty(methodBody))
+            {
+                var bodyIndent = new string(' ', (indentLevel + 1) * 2);
+                luauCode.AppendLine($"{bodyIndent}{methodBody}");
+            }
+
             if (returnType != "void")
             {
                 if (returnType != null)
@@ -188,37 +178,30 @@ namespace LuaSharp.src
                 }
             }
 
-            ProcessChildren(node, luauCode, indentLevel + 1);
             luauCode.AppendLine($"{indent}end");
         }
 
-        /// <summary>
-        /// Processes the child nodes of a given AST node and appends their Luau code representation.
-        /// </summary>
         private static void ProcessChildren(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
-            if (node.ContainsKey("Children"))
+            if (node.TryGetValue("Children", out var value))
             {
-                var children = (List<Dictionary<string, object>>)node["Children"];
-                foreach (var childNode in children)
+                var children = value as List<Dictionary<string, object>>;
+                if (children != null)
                 {
-                    ProcessNode(childNode, luauCode, indentLevel);
+                    foreach (var childNode in children)
+                    {
+                        ProcessNode(childNode, luauCode, indentLevel);
+                    }
                 }
             }
         }
 
-        /// <summary>
-        /// Formats parameters for a Luau function.
-        /// </summary>
         private static string FormatParameters(object parameters)
         {
-            var parameterList = (List<dynamic>)parameters;
-            return string.Join(", ", parameterList.Select(p => p.Name));
+            var parameterList = parameters as List<dynamic>;
+            return parameterList != null ? string.Join(", ", parameterList.Select(p => p.Name)) : "";
         }
 
-        /// <summary>
-        /// Utility function to format a return type for a method.
-        /// </summary>
         private static string FormatReturnType(string returnType)
         {
             return returnType switch
