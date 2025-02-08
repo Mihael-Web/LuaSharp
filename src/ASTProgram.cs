@@ -103,25 +103,18 @@ namespace LuaSharp.src
             foreach (var namespaceNode in namespaces)
             {
                 var namespaceRepresentation = ProcessNamespaceNode(namespaceNode);
-
-                // Fetch classes inside the namespace
-                var classesInNamespace = ASTFetcher.GetClassDeclarationsInsideNamespace(namespaceNode);
-                foreach (var classNode in classesInNamespace)
-                {
-                    var classRepresentation = ProcessClassNode(classNode);
-                    ((List<Dictionary<string, object>>)namespaceRepresentation["Classes"]).Add(classRepresentation);
-                }
-
-                ast.Add(namespaceRepresentation); // Add the namespace and its classes
+                ast.Add(namespaceRepresentation); // Add the namespace representation
             }
 
-            // Handle classes outside of namespaces (root level classes)
-            var rootClasses = ASTFetcher.GetClassesInRoot(syntaxTreeRoot);
-            foreach (var classNode in rootClasses)
+            /**
+            // Handle classes (including those inside namespaces and root level classes)
+            var allClasses = ASTFetcher.GetClassesInRoot(syntaxTreeRoot);
+            foreach (var classNode in allClasses)
             {
-                var classRepresentation = ProcessClassNode(classNode);
-                ast.Add(classRepresentation); // Add root classes
+                var classRepresentation = ProcessClassNode(classNode, string.Empty);
+                ast.Add(classRepresentation); // Add all classes
             }
+            **/
 
             return ast;
         }
@@ -138,10 +131,8 @@ namespace LuaSharp.src
             { "NodeType", "Namespace" },
             { "Name", namespaceNode.Name.ToString() }
         };
-
-            // Fetch classes using ASTFetcher
             var classes = ASTFetcher.GetClassDeclarationsInsideNamespace(namespaceNode);
-            namespaceRepresentation["Classes"] = classes.Select(ProcessClassNode).ToList();
+            namespaceRepresentation["Classes"] = classes.Select(classNode => ProcessClassNode(classNode, namespaceNode.Name.ToString() ?? string.Empty)).ToList();
 
             return namespaceRepresentation;
         }
@@ -151,12 +142,13 @@ namespace LuaSharp.src
         /// </summary>
         /// <param name="classNode">The class syntax node.</param>
         /// <returns>A dictionary representing the class and its contents.</returns>
-        private static Dictionary<string, object> ProcessClassNode(ClassDeclarationSyntax classNode)
+        private static Dictionary<string, object> ProcessClassNode(ClassDeclarationSyntax classNode, string? namespaceParent)
         {
             var classRepresentation = new Dictionary<string, object>
         {
             { "NodeType", "Class" },
-            { "Name", classNode.Identifier.Text }
+            { "Name", classNode.Identifier.Text },
+            { "Namespace", namespaceParent ?? string.Empty }
         };
 
             // Fetch methods using ASTFetcher

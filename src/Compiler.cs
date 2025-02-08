@@ -21,10 +21,10 @@ namespace LuaSharp.src
             // What if the user is on Linux? Or Mac? Or even a toaster?
             // Don't listen to the dude above, that dude's just a nerd.
             var outputFilePath = Path.Combine(outDir, Path.GetFileNameWithoutExtension(file) + ".luau");
-            
+
             // Add null-coalescing for defensive programming (Square up, pal.)
             string sourceCode = File.ReadAllText(file) ?? string.Empty;
-            
+
             if (string.IsNullOrEmpty(sourceCode))
             {
                 Console.WriteLine($"[LuaShrp] [Compilation] Failed to get source code for file {file}");
@@ -51,10 +51,10 @@ namespace LuaSharp.src
         {
             // Use Path.Combine instead of string concatenation because fuck me 
             string outDirCombined = Path.Combine(mainDirectory, outputDirectory);
-            
+
             // Ensure source directory is relative to main directory
             string sourceDirCombined = Path.Combine(mainDirectory, sourceDirectory);
-            
+
             if (!Directory.Exists(outDirCombined))
             {
                 Directory.CreateDirectory(outDirCombined);
@@ -101,7 +101,7 @@ namespace LuaSharp.src
 
             return luauCode.ToString();
         }
-    
+
         private static void ProcessNode(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
             var indent = new string(' ', indentLevel * 2);
@@ -135,6 +135,18 @@ namespace LuaSharp.src
             luauCode.AppendLine($"{indent}local {namespaceName} = {{}}");
             luauCode.AppendLine($"{indent}{namespaceName}.__index = {namespaceName}\n");
 
+            // Process classes within the namespace
+            if (node.ContainsKey("Classes"))
+            {
+                if (node["Classes"] is List<Dictionary<string, object>> classes)
+                {
+                    foreach (var classNode in classes)
+                    {
+                        ProcessNode(classNode, luauCode, indentLevel + 1);
+                    }
+                }
+            }
+
             ProcessChildren(node, luauCode, indentLevel);
         }
 
@@ -163,7 +175,7 @@ namespace LuaSharp.src
             }
 
             // After processing methods, assign the class to its namespace
-            if (parentNamespace != null)
+            if (parentNamespace != null && parentNamespace != string.Empty)
             {
                 luauCode.AppendLine($"\n{indent}{parentNamespace}.{className} = {className}");
             }
@@ -177,7 +189,7 @@ namespace LuaSharp.src
         {
             var indent = new string(' ', indentLevel * 2);
             var methodName = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedMethod";
-            
+
             luauCode.AppendLine($"{indent}{className}.{methodName} = function(self)");
             luauCode.AppendLine($"{indent}    -- Method body here");
             luauCode.AppendLine($"{indent}end\n");
