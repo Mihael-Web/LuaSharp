@@ -62,6 +62,10 @@ namespace LuaSharp.src.SessionManager
             string sourceDirectory = parsedJson["SourceDirectory"]?.ToString() ?? string.Empty;
             string outputDirectory = parsedJson["OutputDirectory"]?.ToString() ?? string.Empty;
 
+            // Normalize the directory path
+            directory = Path.GetFullPath(directory);
+
+            Console.WriteLine($"[LuaShrp] Working Directory: {directory}");
             Console.WriteLine($"[LuaShrp] Source Directory: {sourceDirectory}");
             Console.WriteLine($"[LuaShrp] Output Directory: {outputDirectory}");
 

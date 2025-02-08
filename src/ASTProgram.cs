@@ -38,9 +38,8 @@ namespace LuaSharp.src
         /// <param name="syntaxTreeRoot">The syntax tree root.</param>
         public static IEnumerable<NamespaceDeclarationSyntax> GetNamespaceDeclarations(SyntaxNode syntaxTreeRoot)
         {
-            var namespaceDeclarations = syntaxTreeRoot.DescendantNodes()
-                .OfType<NamespaceDeclarationSyntax>();
-            return namespaceDeclarations;
+            // Use direct LINQ query without intermediate variable
+            return syntaxTreeRoot.DescendantNodes().OfType<NamespaceDeclarationSyntax>();
         }
 
         /// <summary>

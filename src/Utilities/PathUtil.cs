@@ -44,18 +44,12 @@ namespace LuaSharp.src.Utilities
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("[LuaShrp] No directory specified. Recommended to use current directory (.)");
+                Console.WriteLine("[LuaShrp] No directory specified. Use current directory (.)");
                 return false;
             }
 
-            string directory = args[0];
-            if (!Directory.Exists(directory))
-            {
-                Console.WriteLine($"[LuaShrp] The directory '{directory}' does not exist.");
-                return false;
-            }
-
-            return true;
+            string normalizedPath = Path.GetFullPath(args[0]);
+            return Directory.Exists(normalizedPath);
         }
 
         /// <summary>

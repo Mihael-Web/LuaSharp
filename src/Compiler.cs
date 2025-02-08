@@ -17,17 +17,19 @@ namespace LuaSharp.src
         /// <param name="outDir">The output directory path.</param>
         public static void BuildFile(string file, string outDir)
         {
-            string sourceCode = File.ReadAllText(file);
-
-            if (sourceCode == null || sourceCode == string.Empty)
+            // Use Path.Combine instead of string concatenation for paths
+            var outputFilePath = Path.Combine(outDir, Path.GetFileNameWithoutExtension(file) + ".luau");
+            
+            // Add null-coalescing for defensive programming
+            string sourceCode = File.ReadAllText(file) ?? string.Empty;
+            
+            if (string.IsNullOrEmpty(sourceCode))
             {
-                Console.WriteLine("[LuaShrp] [Compilation] Failed to get source code for file" + file + "due to it being either empty or there is generally an internal or external error.");
+                Console.WriteLine($"[LuaShrp] [Compilation] Failed to get source code for file {file}");
                 return;
             }
 
-
             string luaCode = CompilerLSConverter.ConvertCSharpToLuau(sourceCode);
-            string outputFilePath = Path.Combine(outDir, Path.GetFileName(file));
 
             string outputDir = Path.GetDirectoryName(outputFilePath) ?? string.Empty;
             if (!Directory.Exists(outputDir))
@@ -35,7 +37,7 @@ namespace LuaSharp.src
                 Directory.CreateDirectory(outputDir);
             }
 
-            File.WriteAllText(outputFilePath + ".luau", luaCode);
+            File.WriteAllText(outputFilePath, luaCode);
         }
 
         /// <summary>
@@ -43,17 +45,21 @@ namespace LuaSharp.src
         /// </summary>
         /// <param name="sourceDirectory">The path to the source directory.</param>
         /// <param name="outDirectory">The path to the output directory.</param>
-        public static void AttemptBuild(string sourceDirectory, string outDirectory, string mainDirectory)
+        public static void AttemptBuild(string sourceDirectory, string outputDirectory, string mainDirectory)
         {
-            // First we check if out directory exists, and if not we create the directory. //
-            string outDirCombined = mainDirectory + "/" + outDirectory;
+            // Use Path.Combine instead of string concatenation
+            string outDirCombined = Path.Combine(mainDirectory, outputDirectory);
+            
+            // Ensure source directory is relative to main directory
+            string sourceDirCombined = Path.Combine(mainDirectory, sourceDirectory);
+            
             if (!Directory.Exists(outDirCombined))
             {
                 Directory.CreateDirectory(outDirCombined);
             }
 
-            // Now, we can build all the files within the source directory //
-            foreach (var file in Directory.GetFiles(sourceDirectory, "*.cs", SearchOption.AllDirectories))
+            // Use the combined source directory path
+            foreach (var file in Directory.GetFiles(sourceDirCombined, "*.cs", SearchOption.AllDirectories))
             {
                 try
                 {
@@ -74,11 +80,10 @@ namespace LuaSharp.src
         static CompilerLSConverter()
         {
             NodeHandlers = new Dictionary<string, Action<Dictionary<string, object>, StringBuilder, int>>
-        {
-            { "Namespace", HandleNamespaceDeclaration },
-            { "Class", HandleClassDeclaration },
-            { "Method", HandleMethodDeclaration }
-        };
+            {
+                { "Namespace", HandleNamespaceDeclaration },
+                { "Class", HandleClassDeclaration }
+            };
         }
 
         public static string ConvertCSharpToLuau(string sourceCode)
@@ -94,7 +99,7 @@ namespace LuaSharp.src
 
             return luauCode.ToString();
         }
-
+    
         private static void ProcessNode(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
             var indent = new string(' ', indentLevel * 2);
@@ -125,60 +130,53 @@ namespace LuaSharp.src
             var namespaceName = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedNamespace";
 
             luauCode.AppendLine($"{indent}-- Namespace: {namespaceName}");
-            luauCode.AppendLine($"{indent}local {namespaceName} = {{}}");  // Create a table for the namespace
+            luauCode.AppendLine($"{indent}local {namespaceName} = {{}}");
+            luauCode.AppendLine($"{indent}{namespaceName}.__index = {namespaceName}\n");
 
-            ProcessChildren(node, luauCode, indentLevel + 1); // Process nested classes or other elements
+            ProcessChildren(node, luauCode, indentLevel);
         }
 
         private static void HandleClassDeclaration(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
         {
             var indent = new string(' ', indentLevel * 2);
             var className = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedClass";
-            var classNamespace = node.TryGetValue("Namespace", out var namespaceValue) ? namespaceValue?.ToString() : null;
+            var parentNamespace = node.TryGetValue("Namespace", out var nsValue) ? nsValue?.ToString() : null;
 
-            if (classNamespace != null)
+            // Always declare the class locally first
+            luauCode.AppendLine($"{indent}-- Class: {className}");
+            luauCode.AppendLine($"{indent}local {className} = {{}}");
+            luauCode.AppendLine($"{indent}{className}.__index = {className}\n");
+
+            // Process methods first
+            if (node.ContainsKey("Methods") && className != null)
             {
-                // Add class to its parent namespace
-                luauCode.AppendLine($"{indent}-- Class: {className}");
-                luauCode.AppendLine($"{indent}{classNamespace}.{className} = {{}}");
-            }
-            else
-            {
-                // Root class
-                luauCode.AppendLine($"{indent}-- Class: {className}");
-                luauCode.AppendLine($"{indent}local {className} = {{}}");  // Root-level class as a table
-            }
-
-            ProcessChildren(node, luauCode, indentLevel + 1); // Process methods and properties inside the class
-        }
-
-        private static void HandleMethodDeclaration(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
-        {
-            var indent = new string(' ', indentLevel * 2);
-            var methodName = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedMethod";
-            var returnType = node.TryGetValue("ReturnType", out var returnValue) ? returnValue?.ToString() : "void";
-            var parameters = node.TryGetValue("Parameters", out var paramValue) ? FormatParameters(paramValue) : "";
-
-            // Method declaration in Luau
-            luauCode.AppendLine($"{indent}function {methodName}({parameters})");
-
-            // Process method body if available
-            var methodBody = node.TryGetValue("Body", out var bodyValue) ? bodyValue?.ToString() : "";
-            if (!string.IsNullOrEmpty(methodBody))
-            {
-                var bodyIndent = new string(' ', (indentLevel + 1) * 2);
-                luauCode.AppendLine($"{bodyIndent}{methodBody}");
-            }
-
-            if (returnType != "void")
-            {
-                if (returnType != null)
+                var methods = node["Methods"] as List<Dictionary<string, object>>;
+                if (methods != null)
                 {
-                    luauCode.AppendLine($"{indent}  return {FormatReturnType(returnType)}");
+                    foreach (var method in methods)
+                    {
+                        HandleMethodDeclaration(method, luauCode, indentLevel, className);
+                    }
                 }
             }
 
-            luauCode.AppendLine($"{indent}end");
+            // After processing methods, assign the class to its namespace
+            if (parentNamespace != null)
+            {
+                luauCode.AppendLine($"\n{indent}{parentNamespace}.{className} = {className}");
+            }
+
+            luauCode.AppendLine(); // Add extra newline for readability
+        }
+
+        private static void HandleMethodDeclaration(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel, string className)
+        {
+            var indent = new string(' ', indentLevel * 2);
+            var methodName = node.TryGetValue("Name", out var value) ? value?.ToString() : "UnnamedMethod";
+            
+            luauCode.AppendLine($"{indent}{className}.{methodName} = function(self)");
+            luauCode.AppendLine($"{indent}    -- Method body here");
+            luauCode.AppendLine($"{indent}end\n");
         }
 
         private static void ProcessChildren(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel)
