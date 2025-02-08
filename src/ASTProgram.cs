@@ -106,15 +106,17 @@ namespace LuaSharp.src
                 ast.Add(namespaceRepresentation); // Add the namespace representation
             }
 
-            /**
-            // Handle classes (including those inside namespaces and root level classes)
-            var allClasses = ASTFetcher.GetClassesInRoot(syntaxTreeRoot);
-            foreach (var classNode in allClasses)
+            // Handle classes without namespaces
+            var rootClasses = ASTFetcher.GetClassesInRoot(syntaxTreeRoot);
+            foreach (var classNode in rootClasses)
             {
-                var classRepresentation = ProcessClassNode(classNode, string.Empty);
-                ast.Add(classRepresentation); // Add all classes
+                var parentNamespace = classNode.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
+                if (parentNamespace == null)
+                {
+                    var classRepresentation = ProcessClassNode(classNode, string.Empty);
+                    ast.Add(classRepresentation);
+                }
             }
-            **/
 
             return ast;
         }

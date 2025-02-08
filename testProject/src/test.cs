@@ -1,18 +1,17 @@
-namespace test1
-{
-    class TestScript
-    {
-        static void Hello_world()
-        {
-            Console.WriteLine("Hello world!");
-        }
 
-        static void Hello_WorldTwo()
-        {
-            Console.WriteLine("Hello world!!!");
-        }
+class TestScript
+{
+    static void Hello_world()
+    {
+        Console.WriteLine("Hello world!");
+    }
+
+    static void Hello_WorldTwo()
+    {
+        Console.WriteLine("Hello world!!!");
     }
 }
+
 
 namespace test2
 {
