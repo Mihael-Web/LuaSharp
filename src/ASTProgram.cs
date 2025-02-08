@@ -180,4 +180,82 @@ namespace LuaSharp.src
             return methodRepresentation;
         }
     }
+
+    /// <summary>
+    /// Just, utility or debug functions for the AST program.
+    /// </summary>
+    public static class ASTUtility
+    {
+        /// <summary>
+        /// Recursively prints the AST in a tree-like structure based on the simplified list of dictionaries.
+        /// </summary>
+        /// <param name="ast">The list of dictionaries representing the simplified AST structure.</param>
+        /// <param name="indentLevel">The level of indentation for formatting (used for recursive calls).</param>
+        /// <param name="parentNodeName">The name of the parent node, used for clarity in the tree structure (optional).</param>
+        public static void PrintAstTree(List<Dictionary<string, object>> ast, int indentLevel = 0, string? parentNodeName = null)
+        {
+            // Iterate over each node in the AST list and print it in a tree structure
+            foreach (var node in ast)
+            {
+                PrintNode(node, indentLevel, parentNodeName ?? string.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Prints an individual node from the AST, including its type, name, and properties, in a readable format.
+        /// </summary>
+        /// <param name="node">The node represented as a dictionary.</param>
+        /// <param name="indentLevel">The level of indentation for formatting.</param>
+        /// <param name="parentNodeName">The name of the parent node (optional).</param>
+        private static void PrintNode(Dictionary<string, object> node, int indentLevel, string parentNodeName = "")
+        {
+            // Indentation for hierarchical tree structure
+            var indent = new string(' ', indentLevel * 2);
+
+            // Get the node type and kind (basic properties from the dictionary)
+            var nodeType = node.ContainsKey("NodeType") ? node["NodeType"].ToString() : "Unknown";
+            var kind = node.ContainsKey("Kind") ? node["Kind"].ToString() : "Unknown";
+
+            // Start constructing the node's description
+            var nodeDescription = $"{indent}{nodeType} - Kind: {kind}";
+
+            // Add specific properties for different node types (Namespace, Class, Method, etc.)
+            if (nodeType == "NamespaceDeclarationSyntax" && node.ContainsKey("Name"))
+            {
+                nodeDescription += $" - Namespace: {node["Name"]}";
+            }
+            else if (nodeType == "ClassDeclarationSyntax" && node.ContainsKey("Name"))
+            {
+                nodeDescription += $" - Class: {node["Name"]}";
+            }
+            else if (nodeType == "MethodDeclarationSyntax" && node.ContainsKey("Name"))
+            {
+                nodeDescription += $" - Method: {node["Name"]}, ReturnType: {node["ReturnType"]}";
+                if (node.ContainsKey("Parameters"))
+                {
+                    nodeDescription += ", Parameters: " + string.Join(", ", ((List<dynamic>)node["Parameters"]).Select(p => $"{p.Name}: {p.Type}"));
+                }
+            }
+
+            // Print the node's description
+            if (parentNodeName != null)
+            {
+                Console.WriteLine($"{indent}Parent: {parentNodeName} -> {nodeDescription}");
+            }
+            else
+            {
+                Console.WriteLine(nodeDescription);
+            }
+
+            // Print child nodes (recursively if they exist)
+            if (node.ContainsKey("Children"))
+            {
+                var childNodes = (List<Dictionary<string, object>>)node["Children"];
+                foreach (var childNode in childNodes)
+                {
+                    PrintNode(childNode, indentLevel + 1, nodeDescription);
+                }
+            }
+        }
+    }
 }
