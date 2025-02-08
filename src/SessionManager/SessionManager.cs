@@ -74,7 +74,7 @@ namespace LuaSharp.src.SessionManager
             Console.WriteLine("[LuaShrp] Starting build session.");
 
             // Start compile //
-            CompilerLS.AttemptBuild(sourceDirectory, outputDirectory);
+            CompilerLS.AttemptBuild(sourceDirectory, outputDirectory, directory);
         }
 
         public static string? GetCachedProjectSettingsFile()

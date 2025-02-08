@@ -57,6 +57,7 @@ namespace LuaSharp.src.Utilities
 
             return true;
         }
+
         /// <summary>
         /// Finds a file inside a specified directory.
         /// </summary>

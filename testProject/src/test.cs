@@ -1,13 +1,16 @@
-class TestScript
+namespace test
 {
-    static void Hello_world()
+    class TestScript
     {
-        Console.WriteLine("Hello world!");
-    }
+        static void Hello_world()
+        {
+            Console.WriteLine("Hello world!");
+        }
 
-    static void Hello_WorldTwo()
-    {
-        Console.WriteLine("Hello world!!!");
+        static void Hello_WorldTwo()
+        {
+            Console.WriteLine("Hello world!!!");
+        }
     }
 }
 
