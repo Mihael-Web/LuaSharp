@@ -24,7 +24,7 @@ namespace LuaSharp.src
             }
 
             SyntaxNode syntaxTreeRoot = ASTFetcher.GetSyntaxTreeRoot(sourceCode);
-            ASTFetcher.GetNamespaceDeclarations(syntaxTreeRoot);
+
         }
 
         /// <summary>
