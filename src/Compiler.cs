@@ -17,10 +17,12 @@ namespace LuaSharp.src
         /// <param name="outDir">The output directory path.</param>
         public static void BuildFile(string file, string outDir)
         {
-            // Use Path.Combine instead of string concatenation for paths
+            // Use Path.Combine instead of string concatenation for paths 
+            // What if the user is on Linux? Or Mac? Or even a toaster?
+            // Don't listen to the dude above, that dude's just a nerd.
             var outputFilePath = Path.Combine(outDir, Path.GetFileNameWithoutExtension(file) + ".luau");
             
-            // Add null-coalescing for defensive programming
+            // Add null-coalescing for defensive programming (Square up, pal.)
             string sourceCode = File.ReadAllText(file) ?? string.Empty;
             
             if (string.IsNullOrEmpty(sourceCode))
@@ -47,7 +49,7 @@ namespace LuaSharp.src
         /// <param name="outDirectory">The path to the output directory.</param>
         public static void AttemptBuild(string sourceDirectory, string outputDirectory, string mainDirectory)
         {
-            // Use Path.Combine instead of string concatenation
+            // Use Path.Combine instead of string concatenation because fuck me 
             string outDirCombined = Path.Combine(mainDirectory, outputDirectory);
             
             // Ensure source directory is relative to main directory
@@ -167,6 +169,8 @@ namespace LuaSharp.src
             }
 
             luauCode.AppendLine(); // Add extra newline for readability
+            // You know, this kinda fucked up the entire export system. Looks like shit.
+            // Spaces and shit all over the place.
         }
 
         private static void HandleMethodDeclaration(Dictionary<string, object> node, StringBuilder luauCode, int indentLevel, string className)

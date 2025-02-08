@@ -59,6 +59,7 @@ namespace LuaSharp.src.SessionManager
             }
 
             // Now, we are ready to do the compile stuff! //
+            // Dunno why you're so happy. This is fucking bullshit. //
             string sourceDirectory = parsedJson["SourceDirectory"]?.ToString() ?? string.Empty;
             string outputDirectory = parsedJson["OutputDirectory"]?.ToString() ?? string.Empty;
 

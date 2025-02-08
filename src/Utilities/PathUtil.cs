@@ -18,11 +18,13 @@ namespace LuaSharp.src.Utilities
         /// </returns>
         public static bool IsRunningFromPath()
         {
-            // First we have to get the execution path, which is kinda simple.
+            // First we have to get the execution path, which is kinda simple. 
+            // If you're a fucking CS nerd, that is.
             string executingPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? string.Empty;
             string[] pathDirectories = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>();
 
-            // After we fetch the thingy, we check if we're runnin from path!
+            // After we fetch the thingy, we check if we're running from path.
+            // To be in the path, or to not be in the path.
             foreach (string dir in pathDirectories)
             {
                 if (string.Equals(dir.Trim(), executingPath, StringComparison.OrdinalIgnoreCase))
